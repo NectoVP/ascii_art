@@ -8,46 +8,87 @@ const double PI = 3.14159265358;
 int nScreenWidth = 170;
 int nScreenHeight = 40;
 
-void SetWindow(int Width, int Height) 
-{ 
-    _COORD coord; 
-    coord.X = Width; 
-    coord.Y = Height; 
+struct Point {
+    Point() {
+        x = 0;
+        y = 0;
+    }
 
-    _SMALL_RECT Rect; 
-    Rect.Top = 0; 
-    Rect.Left = 0;
-    Rect.Bottom = Height - 1; 
-    Rect.Right = Width - 1; 
+    Point(double x, double y) {
+        this->x = x;
+        this->y = y;
+    }
 
-    HANDLE Handle = GetStdHandle(STD_OUTPUT_HANDLE);      // Get Handle 
-    SetConsoleScreenBufferSize(Handle, coord);            // Set Buffer Size 
-    SetConsoleWindowInfo(Handle, TRUE, &Rect);            // Set Window Size 
-} 
+    double x;
+    double y;
+};
 
-int main() {
+class Renderer {
+public:
+    Renderer() {
+        SetWindow(nScreenWidth, nScreenHeight);
 
-    SetWindow(nScreenWidth, nScreenHeight);
+        screen = new char[nScreenHeight * nScreenWidth];
+        hConsole = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
+        SetConsoleActiveScreenBuffer(hConsole);
+        dwBytesWritten = 0;
+    }
 
-    char* screen = new char[nScreenHeight * nScreenWidth];
-    HANDLE hConsole = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
-    SetConsoleActiveScreenBuffer(hConsole);
-    DWORD dwBytesWritten = 0;
+    void Render() {
+        screen[nScreenHeight * nScreenWidth - 1] = '\0';
+        WriteConsoleOutputCharacterA(hConsole, screen, nScreenHeight * nScreenWidth, {0, 0}, &dwBytesWritten);
+    }
 
-    double k = 0;
+    ~Renderer() {
+        delete[] screen;
+    }
 
-    while(true) {
-
+    void Fill() {
         for(int i = 0; i < nScreenHeight; ++i) {
             for(int j = 0; j < nScreenWidth; ++j) {
                 screen[i * nScreenWidth + j] = '#';
             }
         }
+    }
+
+private:
+    void SetWindow(int Width, int Height) { 
+        _COORD coord; 
+        coord.X = Width; 
+        coord.Y = Height; 
+
+        _SMALL_RECT Rect; 
+        Rect.Top = 0; 
+        Rect.Left = 0;
+        Rect.Bottom = Height - 1; 
+        Rect.Right = Width - 1; 
+
+        HANDLE Handle = GetStdHandle(STD_OUTPUT_HANDLE);
+        SetConsoleScreenBufferSize(Handle, coord);
+        SetConsoleWindowInfo(Handle, TRUE, &Rect);
+    }
+
+public:
+    char* screen;
+
+private:
+    HANDLE hConsole;
+    DWORD dwBytesWritten;
+};
+
+int main() {
+    Renderer renderer;
+    
+    double k = 0;
+
+    while(true) {
+
+        renderer.Fill();
 
         for(int i = 0; i < nScreenHeight; ++i) {
             for(int j = 0; j < nScreenWidth; ++j) {
                 if(std::pow(i - 5 - std::sin(k) * nScreenHeight / 4, 2) / 28 * 33 + std::pow(j - k, 2) / 66 * 28 <= 50)             
-                    screen[i * nScreenWidth + j] = '.';
+                    renderer.screen[i * nScreenWidth + j] = '.';
             }
         }
 
@@ -55,11 +96,8 @@ int main() {
         if(k >= nScreenWidth)
             k = 0;
 
-        screen[nScreenHeight * nScreenWidth - 1] = '\0';
-        WriteConsoleOutputCharacterA(hConsole, screen, nScreenHeight * nScreenWidth, {0, 0}, &dwBytesWritten);
+        renderer.Render();
     }
-
-    delete[] screen;
 
     return 0;
 }
