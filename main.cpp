@@ -5,7 +5,7 @@
 
 const double PI = 3.14159265358;
 
-int nScreenWidth = 170;
+int nScreenWidth = 238;
 int nScreenHeight = 40;
 
 struct Point {
@@ -92,7 +92,7 @@ int main() {
             }
         }
 
-        k += 0.01;
+        k += 0.001;
         if(k >= nScreenWidth)
             k = 0;
 
