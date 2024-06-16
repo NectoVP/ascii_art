@@ -141,18 +141,21 @@ bool CheckUnderOrAboveLine(const Point& first, const Point& second, double x, do
     return !check;
 }
 
-bool CheckBoundaries(double x, double y) {
+bool CheckBoundaries(double x, double y, double angle) {
     Point pointA(-0.5, 0, 0.7);
     Point pointB(0.5, 0, 0.7);
     Point pointC(0, 0.5, 0.7);
 
-    Point pA = CalculatePerspective(pointA);
-    Point pB = CalculatePerspective(pointB);
-    Point pC = CalculatePerspective(pointC);
+    Point pA = RotatePoint(pointA, 0, angle, 0);
+    Point pB = RotatePoint(pointB, 0, angle, 0);
 
-    pA = RotatePoint(pA, 45, 0, 0);
-    pB = RotatePoint(pB, 45, 0, 0);
-    pC = RotatePoint(pC, 45, 0, 0);
+    //Point pC = RotatePoint(pointC, angle, 0, 0);
+    Point pC = Point(pointC);
+
+    pA = CalculatePerspective(pA);
+    pB = CalculatePerspective(pB);
+    pC = CalculatePerspective(pC);
+
 
     return CheckUnderOrAboveLine(pA, pB, x, y, false) && CheckUnderOrAboveLine(pA, pC, x, y, true) && CheckUnderOrAboveLine(pC, pB, x, y, true);
 }
@@ -168,13 +171,13 @@ int main() {
 
         for(int i = 0; i < nScreenHeight; ++i) {
             for(int j = 0; j < nScreenWidth; ++j) {
-                if(CheckBoundaries(j, -i))
+                if(CheckBoundaries(j, -i, k))
                     renderer.screen[i * nScreenWidth + j] = '.';
             }
         }
 
-        k += 0.001;
-        if(k >= nScreenWidth)
+        k += 0.1;
+        if(k >= 360)
             k = 0;
 
         renderer.Render();
