@@ -4,7 +4,7 @@
 
 const double PI = 3.14159265358;
 
-int nScreenWidth = 238;
+int nScreenWidth = 80;
 int nScreenHeight = 40;
 
 std::string light_ascii = ".,-~:;!*#$@";
@@ -110,21 +110,19 @@ Point RotatePoint(const Point& point, double x, double y, double z) {
 }
 
 Point CalculatePerspective(const Point& old, double k, double n) {
-    float fov = 120;
+    float fov = 90;
     double precomp_tan = std::tan(fov * PI / 180 / 2);
     
-    Point center(0.5, 0.5, -10);
+    Point center(0.7, 0.3, -5);
 
     double offset = 0.8;
 
     Point rotated = RotatePoint(old, 0, n, k);
 
-    rotated.x += 5;
-    rotated.z += 5;
+    rotated.x += 3;
+    rotated.z += 4;
 
     Point light(3.0, 10.0, 3.0);
-    //double light_strength = std::sqrt(light.x * light.x + light.y * light.y + light.z * light.z);
-    //double rotated_strength = std::sqrt(rotated.x * rotated.x + rotated.y * rotated.y + rotated.z * rotated.z);  
 
     double light_level = rotated.x * light.x + rotated.y * light.y + rotated.z * light.z;
 
@@ -132,6 +130,7 @@ Point CalculatePerspective(const Point& old, double k, double n) {
     Point tempPoint(rotated.x / (rotated.z + offset) / precomp_tan, rotated.y / (rotated.z + offset) / precomp_tan, (rotated.z + offset));
 
     tempPoint.y += center.y;
+    tempPoint.x += center.x;
 
     //Final size corresponding to window size
     tempPoint.x *= nScreenWidth;
@@ -144,7 +143,6 @@ Point CalculatePerspective(const Point& old, double k, double n) {
 int main() {
     Renderer renderer;
 
-    double k = 0;
     double n = 0;
 
     while(true) {
@@ -153,7 +151,7 @@ int main() {
         for(double x = -5; x <= 5; x += 0.1) {
             for(double y = -5; y <= 5; y += 0.1) {
                 if(x  * x  + y  * y <= 25) {
-                    for(k = 0; k < 360; ++k) {
+                    for(int k = 0; k < 360; k+=5) {
                         Point temp = CalculatePerspective(Point(x / 15, y / 15, 1), k, n);
                         int j = std::round(temp.x);
                         int i = std::round(temp.y);
@@ -165,7 +163,7 @@ int main() {
 
         if(n >= 360)
             n = 0;
-        n+=10;
+        n+=1;
 
         renderer.Render();
     }
