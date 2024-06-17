@@ -1,6 +1,6 @@
-#Spinning donut
+# Spinning donut
 
-##Code idea
+## Code idea
 https://www.youtube.com/watch?v=DEqXNfs_HhY
 
 Not as good as the "youtube" one but good enough
