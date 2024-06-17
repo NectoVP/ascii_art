@@ -1,5 +1,4 @@
 #include <iostream>
-#include <vector>
 #include <windows.h>
 #include <cmath>
 
@@ -7,6 +6,8 @@ const double PI = 3.14159265358;
 
 int nScreenWidth = 238;
 int nScreenHeight = 40;
+
+std::string light_ascii = ".,-~:;!*#$@";
 
 struct Point {
     Point() {
@@ -63,7 +64,7 @@ public:
     void Fill() {
         for(int i = 0; i < nScreenHeight; ++i) {
             for(int j = 0; j < nScreenWidth; ++j) {
-                screen[i * nScreenWidth + j] = '#';
+                screen[i * nScreenWidth + j] = ' ';
             }
         }
     }
@@ -108,65 +109,63 @@ Point RotatePoint(const Point& point, double x, double y, double z) {
     return rotated;
 }
 
-Point CalculatePerspective(const Point& old, double k) {
+Point CalculatePerspective(const Point& old, double k, double n) {
     float fov = 120;
     double precomp_tan = std::tan(fov * PI / 180 / 2);
     
-    Point center(0.25, 0.1, -10);
+    Point center(0.5, 0.5, -10);
 
     double offset = 0.8;
 
-    Point rotated = RotatePoint(old, 0, 0, k);
+    Point rotated = RotatePoint(old, 0, n, k);
+
+    rotated.x += 5;
+    rotated.z += 5;
+
+    Point light(3.0, 10.0, 3.0);
+    //double light_strength = std::sqrt(light.x * light.x + light.y * light.y + light.z * light.z);
+    //double rotated_strength = std::sqrt(rotated.x * rotated.x + rotated.y * rotated.y + rotated.z * rotated.z);  
+
+    double light_level = rotated.x * light.x + rotated.y * light.y + rotated.z * light.z;
 
     //Perspective
-    Point tempPoint(rotated.x / (rotated.z + offset) / precomp_tan, rotated.y / (rotated.z + offset) / precomp_tan, rotated.z);
+    Point tempPoint(rotated.x / (rotated.z + offset) / precomp_tan, rotated.y / (rotated.z + offset) / precomp_tan, (rotated.z + offset));
 
-    tempPoint.x += center.x;
     tempPoint.y += center.y;
-
-    if(tempPoint.x > 1)
-        tempPoint.x = 1;
-        
-    if(tempPoint.y > 1)
-        tempPoint.y = 1;
 
     //Final size corresponding to window size
     tempPoint.x *= nScreenWidth;
     tempPoint.y *= nScreenHeight;
+    tempPoint.z = light_level;
 
     return tempPoint;
-}
-
-bool CheckTorus(double x, double y, double z) {
-    double small_rad = 2;
-    double big_rad = 4;
-    return std::pow(((x-7)*(x-7) + (y-7)*(y-7) + (z-3)*(z-3) + big_rad*big_rad - small_rad*small_rad), 2) <= 4 * big_rad * big_rad * ((x-7)*(x-7) + (y-7)*(y-7));
 }
 
 int main() {
     Renderer renderer;
 
     double k = 0;
+    double n = 0;
 
     while(true) {
         renderer.Fill();
 
-        for(double x = 1; x <= 13; x += 0.1) {
-            for(double y = 1; y <= 13; y += 0.1) {
-                for(double z = 1; z <= 5; z += 0.1) {
-                    if(CheckTorus(x, y, z)) {
-                        Point temp = CalculatePerspective(Point(x / 15, y / 15, z / 15), k);
-                        int j = std::round(temp.x) - 1;
-                        int i = std::round(temp.y) - 1;
-                        renderer.screen[i * nScreenWidth + j] = '.';
+        for(double x = -5; x <= 5; x += 0.1) {
+            for(double y = -5; y <= 5; y += 0.1) {
+                if(x  * x  + y  * y <= 25) {
+                    for(k = 0; k < 360; ++k) {
+                        Point temp = CalculatePerspective(Point(x / 15, y / 15, 1), k, n);
+                        int j = std::round(temp.x);
+                        int i = std::round(temp.y);
+                        renderer.screen[i * nScreenWidth + j] = light_ascii[(int)temp.z % light_ascii.length()];
                     }
                 }
-            }    
+            }
         }
 
-        k += 0.5;
-        if(k >= 360)
-            k = 0;
+        if(n >= 360)
+            n = 0;
+        n+=10;
 
         renderer.Render();
     }
