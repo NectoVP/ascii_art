@@ -93,26 +93,6 @@ private:
     DWORD dwBytesWritten;
 };
 
-Point CalculatePerspective(const Point& old) {
-    Point center(0.5, -0.5, 0);
-
-    float fov = 120;
-    double precomp_tan = std::tan(fov * PI / 180 / 2);
-    
-    //Perspective
-    Point tempPoint(old.x / old.z / precomp_tan, old.y / old.z / precomp_tan, old.z);
-    
-    //Translation towards center
-    tempPoint.x += center.x;
-    tempPoint.y += center.y;
-
-    //Final size corresponding to window size
-    tempPoint.x *= nScreenWidth;
-    tempPoint.y *= nScreenHeight;
-
-    return tempPoint;
-}
-
 Point RotatePoint(const Point& point, double x, double y, double z) {
     x = x * PI / 180; // phi
     y = y * PI / 180; // psi
@@ -128,38 +108,40 @@ Point RotatePoint(const Point& point, double x, double y, double z) {
     return rotated;
 }
 
-// pass true to check if line is above, false to check below
-bool CheckUnderOrAboveLine(const Point& first, const Point& second, double x, double y, bool flag) {
-    double koef_k = (second.y - first.y) / (second.x - first.x);
-    double koef_b = second.y - koef_k * second.x;
+Point CalculatePerspective(const Point& old, double k) {
+    float fov = 120;
+    double precomp_tan = std::tan(fov * PI / 180 / 2);
+    
+    Point center(0.25, 0.1, -10);
 
-    bool check = koef_k * x + koef_b >= y;
+    double offset = 0.8;
 
-    if(flag)
-        return check;
+    Point rotated = RotatePoint(old, 0, 0, k);
 
-    return !check;
+    //Perspective
+    Point tempPoint(rotated.x / (rotated.z + offset) / precomp_tan, rotated.y / (rotated.z + offset) / precomp_tan, rotated.z);
+
+    tempPoint.x += center.x;
+    tempPoint.y += center.y;
+
+    if(tempPoint.x > 1)
+        tempPoint.x = 1;
+        
+    if(tempPoint.y > 1)
+        tempPoint.y = 1;
+
+    //Final size corresponding to window size
+    tempPoint.x *= nScreenWidth;
+    tempPoint.y *= nScreenHeight;
+
+    return tempPoint;
 }
 
-bool CheckBoundaries(double x, double y, double angle) {
-    Point pointA(-0.5, 0, 0.7);
-    Point pointB(0.5, 0, 0.7);
-    Point pointC(0, 0.5, 0.7);
-
-    Point pA = RotatePoint(pointA, 0, angle, 0);
-    Point pB = RotatePoint(pointB, 0, angle, 0);
-
-    //Point pC = RotatePoint(pointC, angle, 0, 0);
-    Point pC = Point(pointC);
-
-    pA = CalculatePerspective(pA);
-    pB = CalculatePerspective(pB);
-    pC = CalculatePerspective(pC);
-
-
-    return CheckUnderOrAboveLine(pA, pB, x, y, false) && CheckUnderOrAboveLine(pA, pC, x, y, true) && CheckUnderOrAboveLine(pC, pB, x, y, true);
+bool CheckTorus(double x, double y, double z) {
+    double small_rad = 2;
+    double big_rad = 4;
+    return std::pow(((x-7)*(x-7) + (y-7)*(y-7) + (z-3)*(z-3) + big_rad*big_rad - small_rad*small_rad), 2) <= 4 * big_rad * big_rad * ((x-7)*(x-7) + (y-7)*(y-7));
 }
-
 
 int main() {
     Renderer renderer;
@@ -169,14 +151,20 @@ int main() {
     while(true) {
         renderer.Fill();
 
-        for(int i = 0; i < nScreenHeight; ++i) {
-            for(int j = 0; j < nScreenWidth; ++j) {
-                if(CheckBoundaries(j, -i, k))
-                    renderer.screen[i * nScreenWidth + j] = '.';
-            }
+        for(double x = 1; x <= 13; x += 0.1) {
+            for(double y = 1; y <= 13; y += 0.1) {
+                for(double z = 1; z <= 5; z += 0.1) {
+                    if(CheckTorus(x, y, z)) {
+                        Point temp = CalculatePerspective(Point(x / 15, y / 15, z / 15), k);
+                        int j = std::round(temp.x) - 1;
+                        int i = std::round(temp.y) - 1;
+                        renderer.screen[i * nScreenWidth + j] = '.';
+                    }
+                }
+            }    
         }
 
-        k += 0.1;
+        k += 0.5;
         if(k >= 360)
             k = 0;
 
